@@ -1,0 +1,19 @@
+{
+  "name": "xianrenqh/api-doc-webman",
+  "type": "library",
+  "license": "MIT",
+  "description": "Webman plugin xianrenqh/api-doc-webman",
+  "authors"    : [
+    {
+      "name" : "xiaohuihui",
+      "email": "762229008@qq.com"
+    }
+  ],
+  "require": {
+  },
+  "autoload": {
+    "psr-4": {
+      "xianrenqh\\ApiDocWebman\\": "src"
+    }
+  }
+}

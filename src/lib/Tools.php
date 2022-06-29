@@ -78,20 +78,5 @@ class Tools
         return $value;
     }
 
-    /**
-     * 文件下载
-     *
-     * @param string - $docHtml - API文档HTML内容
-     */
-    public static function downloadFile($docHtml)
-    {
-        set_time_limit(0);
-        //下载文件需要用到的头
-        header('Content-type: application/octet-stream');
-        header('Accept-Ranges: bytes');
-        header('Content-Disposition: attachment; filename=api-doc_'.date('Y-m-d').'.html');
-        echo $docHtml;
-        exit();
-    }
 
 }

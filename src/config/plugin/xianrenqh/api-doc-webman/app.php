@@ -3,45 +3,24 @@ return [
     'enable'  => true,
     'api_doc' => [
         // 文档标题
-        'title'           => 'webman-APi接口文档',
+        'title'         => 'webman-APi接口文档',
         // 版权申明
-        'copyright'       => 'Powered By HuiCMF',
-        //生成文档的控制器
-        'controllers'     => [
-            'app\\api\\controller\\IndexController',
-        ],
-        // 指定公共注释定义的文件地址
-        'definitions'     => "xianrenqh\apidoc_v2\lib\Definitions",
-        // 设置可选版本
-        'versions'        => [
-            ['title' => 'V2.0', 'folder' => ''],
+        'copyright'     => 'Powered By HuiCMF',
+        //需要生成文档的控制器
+        'class'         => [
+            'app\\api\\controller\\UserController',
         ],
         //作者
-        'author'          => '小灰灰',
-        // 控制器分组列表
-        'groups'          => [],
-        // 是否开启缓存
-        'with_cache'      => false,
-        // 统一的请求响应体
-        'responses'       => '{
-    "code":"状态码",
-    "message":"操作描述",
-    "data":"业务数据",
-    "timestamp":"响应时间戳"
-}',
-        // 设置全局Authorize时请求头headers携带的key
-        'global_auth_key' => "Authorization",
+        'author'        => '小灰灰',
         // 密码验证配置
-        'auth'            => [
+        'auth'          => [
             // 是否启用密码验证
             'with_auth'     => false,
             // 验证密码
             'auth_password' => "123456",
-            // 验证请求头中apidocToken的字段，默认即可
-            'headers_key'   => "apidocToken",
         ],
         // 过滤、不解析的方法名称
-        'filter_method'   => [
+        'filter_method' => [
             '_empty',
             '_initialize',
             '__construct',

@@ -20,96 +20,48 @@ class BootstrapApiDoc extends ApiDoc
 {
 
     /**
-     * @var string - Bootstrap CSS文件路径
-     */
-    private $bootstrapCss = __DIR__.'/../assets/css/bootstrap.min.css';
-
-    /**
-     * @var string - Bootstrap JS文件路径
-     */
-    private $bootstrapJs = __DIR__.'/../assets/js/bootstrap.min.js';
-
-    /**
-     * @var string - jQuery Js文件路径
-     */
-    private $jQueryJs = __DIR__.'/../assets/js/jquery.min.js';
-
-    /**
-     * @var string - 自定义CSS
-     */
-    private $customCss = '<style type="text/css">
-        ::-webkit-scrollbar {width: 5px;}
-        .navbar-collapse.collapse.show::-webkit-scrollbar {width: 0; height: 0;background-color: rgba(255, 255, 255, 0);}
-        ::-webkit-scrollbar-track {background-color: rgba(255, 255, 255, 0.2);-webkit-border-radius: 2em;-moz-border-radius: 2em;border-radius: 2em;}
-        ::-webkit-scrollbar-thumb {background-color: rgba(0, 0, 0, 0.8);-webkit-border-radius: 2em;-moz-border-radius: 2em;border-radius: 2em;}
-        ::-webkit-scrollbar-button {-webkit-border-radius: 2em;-moz-border-radius: 2em;border-radius: 2em;height: 0;background-color: rgba(0, 0, 0, 0.9);}
-        ::-webkit-scrollbar-corner {background-color: rgba(0, 0, 0, 0.9);}
-        #list-tab-left-nav{display: none;}
-        .doc-content{margin-top: 75px;}
-        .class-item .class-title {text-indent: 0.6em;border-left: 5px solid lightseagreen;font-size: 24px;margin: 15px 0;}
-        .action-item .action-title {text-indent: 0.6em;border-left: 3px solid #F0AD4E;font-size: 20px;margin: 8px 0;}
-        .table-item {background-color:#FFFFFF;padding-top: 10px;margin-bottom:10px;border: solid 1px #ccc;border-radius: 5px;}
-        .list-group-item-sub{padding: .5rem 1.25rem;}
-        .copyright-content{margin: 10px 0;}
-        .jsonview{white-space:pre-wrap;font-size:0.8em;font-family: emoji;color:#ee6a5e}
-        .jsonview .prop{font-weight:400;}
-        .jsonview .null{color:red;}
-        .jsonview .bool{color:#a37901;}
-        .jsonview .num{color:#fabd07;}
-        .jsonview .string{color:#26913f;white-space:pre-wrap;}
-        .jsonview .string.multiline{display:inline-block;vertical-align:text-top;}
-        .jsonview .collapser{position:absolute;left:-1em;cursor:pointer;}
-        .jsonview .collapsible{transition:height 1.2s;transition:width 1.2s;}
-        .jsonview .collapsible.collapsed{display:inline-block;overflow:hidden;margin:0;width:1em;height:.8em;}
-        .jsonview .collapsible.collapsed:before{margin-left:.2em;width:1em;content:"…";}
-        .jsonview .collapser.collapsed{transform:rotate(0);}
-        .jsonview .q{display:inline-block;width:0;color:transparent;}
-        .jsonview li{position:relative;}
-        .jsonview ul{margin:0 0 0 2em;padding:0;list-style:none;}
-        .jsonview h1{font-size:1.2em;}
-    </style>';
-
-    /**
-     * @var string - 自定义JS
-     */
-    private $customJs = '<script type="text/javascript">
-         $(\'a[href*="#"]:not([href="#"])\').click(function() {
-            if (location.pathname.replace(/^\//, \'\') == this.pathname.replace(/^\//, \'\') && location.hostname == this.hostname) {
-                var target = $(this.hash);
-                target = target.length ? target : $("[name=\' + this.hash.slice(1) +\']");
-                if (target.length) {
-                    var topOffset = target.offset().top - 60;
-                    $("html, body").animate({
-                        scrollTop: topOffset
-                    }, 800);
-                    return false;
-                }
-            }
-        });</script>
-';
-
-    /**
      * Bootstrap 构造函数.
      *
      * @param array $config - 配置信息
      */
-    public function __construct($config)
+    public function __construct()
     {
-        parent::__construct($config);
-        // bootstrapJs文件路径
-        $this->bootstrapJs = Tools::getSubValue('bootstrap_js', $config, $this->bootstrapJs);
-        // jQueryJs文件路径
-        $this->jQueryJs = Tools::getSubValue('jquery_js', $config, $this->jQueryJs);
-        // 自定义js
-        $this->customJs .= Tools::getSubValue('custom_js', $config, '');
-        // bootstrapCSS文件路径
-        $this->bootstrapCss = Tools::getSubValue('bootstrap_css', $config, $this->bootstrapCss);
-        // 自定义CSS
-        $this->customCss .= Tools::getSubValue('custom_css', $config, '');
-        // 合并CSS
-        $this->_getCss();
-        // 合并JS
-        $this->_getJs();
+        parent::__construct();
+    }
+
+    /**
+     * 验证权限
+     *
+     * @param $config
+     */
+    private function Auth($config)
+    {
+        $configAuth = $config['auth'];
+        if ($configAuth['with_auth']) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public function check_auth()
+    {
+        $method = request()->method();
+        if (request()->method() == 'POST') {
+            $config        = $this->getConfig;
+            $auth_password = request()->post('auth_password');
+            $configAuth    = $config['auth'];
+            if ($auth_password != $configAuth['auth_password']) {
+                return json(['code' => 0, 'msg' => '密码错误']);
+            }
+            $session = request()->session();
+            $session->set('api_doc_webman_check_login', md5($auth_password."-".date("Y/m")));
+
+            return json(['code' => 200, 'msg' => 'ok']);
+        } else {
+            return json(['code' => 0, 'msg' => '参数错误']);
+        }
+
     }
 
     /**
@@ -127,8 +79,22 @@ class BootstrapApiDoc extends ApiDoc
      */
     public function getHtml($type = \ReflectionMethod::IS_PUBLIC)
     {
-        $data = $this->getApiDoc($type);
-        $html = <<<EXT
+        $config = $this->getConfig;
+        $data   = $this->getApiDoc($type);
+        $auth   = $this->Auth($config);
+
+        $session    = request()->session();
+        $hasSession = $session->get('api_doc_webman_check_login', '');
+        if ($hasSession != md5($config['auth']['auth_password']."-".date("Y/m"))) {
+            $checkSession = false;
+        } else {
+            $checkSession = true;
+        }
+        if ($auth && ! $checkSession) {
+            //验证登录
+            return $this->getAuthHtml($config);
+        } else {
+            $html = <<<EXT
         <!DOCTYPE html>
         <html lang="zh-CN">
         <head>
@@ -137,10 +103,9 @@ class BootstrapApiDoc extends ApiDoc
             <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
             <!-- 禁止浏览器初始缩放 -->
             <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, maximum-scale=1, user-scalable=0">
-            <title>API文档 By Api-Doc-PHP</title>
-            {$this->customCss}
-            {$this->customJs}
-
+            <title>{$config['title']}</title>
+            {$this->_getCss()}
+            {$this->_getJs()}
         </head>
         <body>
         <div class="container-fluid" style="max-width:1000px;">
@@ -158,7 +123,8 @@ class BootstrapApiDoc extends ApiDoc
                 </div>
              <div class="row">
                     <div class="col-lg-12 text-center copyright-content">
-                        版权信息：
+                        版权信息：<span style="font-size:14px;">{$config['copyright']}</span>&emsp; 
+                        作者：<span style="font-size:14px;">{$config['author']}</span>
                     </div>
                 </div>
         </div>
@@ -166,13 +132,9 @@ class BootstrapApiDoc extends ApiDoc
         </html>
 EXT;
 
-        if (isset($_GET['download']) && $_GET['download'] === 'api_doc_php') {
-            Tools::downloadFile($html);
-
-            return true;
+            return $html;
         }
 
-        return $html;
     }
 
     /**
@@ -198,6 +160,72 @@ EXT;
                       </tr>';
         }
         $html .= '</table></div>';
+
+        return $html;
+    }
+
+    private function getAuthHtml($config)
+    {
+        $html = <<<EXT
+        <!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{$config['title']}</title>
+            {$this->_getCss()}
+            {$this->_getJs()}
+            
+</head>
+<body>
+    <div class="container-fluid" style="max-width:1000px;">
+         <nav class="navbar navbar-expand-sm navbar-dark bg-dark fixed-top">
+               <a class="navbar-brand" href="#">API文档【请先登录】</a>
+               <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" >
+                   <span class="navbar-toggler-icon"></span>
+               </button>
+         </nav>
+        <div id="login" style="width:100%; max-width:640px; margin:25% auto 10%;">
+            <form class="text-left mx-auto card p-4 w-100 p-2" autocomplete="off" method="post" action="javascript:;">
+                <label for="password">请输入密码</label>
+                <div class="input-group">
+                    <input type="password" id="auth_password" name="auth_password" autocomplete="off" class="form-control rounded-right" spellcheck="false" autocapitalize="off" required>
+                    <button id="toggle-password" type="button" class="d-none"
+                            aria-label="Show password as plain text. Warning: this will display your password on the screen."></button>
+                </div>
+                <button class="btn btn-lg btn-primary btn-block mt-3" onclick="check_login()">
+                    Sign in
+                </button>
+            </form>
+            
+        </div>
+
+         <div class="row">
+                <div class="col-lg-12 text-center copyright-content">
+                    版权信息：<span style="font-size:14px;">{$config['copyright']}</span>&emsp; 
+                    作者：<span style="font-size:14px;">{$config['author']}</span>
+                </div>
+            </div>
+        </div>
+</body>
+</html>
+<script>
+function check_login(){
+  $.post("/apidoc/check_auth",{
+    auth_password: $('#auth_password').val()
+  },function(res){
+    if(res.code!=200){
+      alert(res.msg);
+      window.location.reload();
+    }else{
+      window.location.reload();
+    }
+  })
+}
+</script>
+EXT;
 
         return $html;
     }
@@ -429,7 +457,7 @@ EXT;
             }
             $html .= '</div></li>';
         }
-        $html .= ' <li class="nav-item"><a class="nav-link" href="?download=api_doc_php">下载文档</a></li>';
+        $html .= '';
         $html .= '</ul>';
 
         return $html;
@@ -441,17 +469,41 @@ EXT;
      */
     private function _getCss()
     {
-        $path = realpath($this->bootstrapCss);
-        if ( ! $path || ! is_file($path)) {
-            return $this->customCss;
-        }
-        $bootstrapCss = file_get_contents($path);
-        if (empty($bootstrapCss)) {
-            return $this->customCss;
-        }
-        $this->customCss = ' <link href="https://cdn.bootcss.com/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">'.$this->customCss;
+        $customCss = "";
+        $customCss .= ' <link href="https://cdn.bootcss.com/twitter-bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet">';
+        $customCss .= '<style type="text/css">
+        ::-webkit-scrollbar {width: 5px;}
+        .navbar-collapse.collapse.show::-webkit-scrollbar {width: 0; height: 0;background-color: rgba(255, 255, 255, 0);}
+        ::-webkit-scrollbar-track {background-color: rgba(255, 255, 255, 0.2);-webkit-border-radius: 2em;-moz-border-radius: 2em;border-radius: 2em;}
+        ::-webkit-scrollbar-thumb {background-color: rgba(0, 0, 0, 0.8);-webkit-border-radius: 2em;-moz-border-radius: 2em;border-radius: 2em;}
+        ::-webkit-scrollbar-button {-webkit-border-radius: 2em;-moz-border-radius: 2em;border-radius: 2em;height: 0;background-color: rgba(0, 0, 0, 0.9);}
+        ::-webkit-scrollbar-corner {background-color: rgba(0, 0, 0, 0.9);}
+        #list-tab-left-nav{display: none;}
+        .doc-content{margin-top: 75px;}
+        .class-item .class-title {text-indent: 0.6em;border-left: 5px solid lightseagreen;font-size: 24px;margin: 15px 0;}
+        .action-item .action-title {text-indent: 0.6em;border-left: 3px solid #F0AD4E;font-size: 20px;margin: 8px 0;}
+        .table-item {background-color:#FFFFFF;padding-top: 10px;margin-bottom:10px;border: solid 1px #ccc;border-radius: 5px;}
+        .list-group-item-sub{padding: .5rem 1.25rem;}
+        .copyright-content{margin: 10px 0;}
+        .jsonview{white-space:pre-wrap;font-size:0.8em;font-family: emoji;color:#ee6a5e}
+        .jsonview .prop{font-weight:400;}
+        .jsonview .null{color:red;}
+        .jsonview .bool{color:#a37901;}
+        .jsonview .num{color:#fabd07;}
+        .jsonview .string{color:#26913f;white-space:pre-wrap;}
+        .jsonview .string.multiline{display:inline-block;vertical-align:text-top;}
+        .jsonview .collapser{position:absolute;left:-1em;cursor:pointer;}
+        .jsonview .collapsible{transition:height 1.2s;transition:width 1.2s;}
+        .jsonview .collapsible.collapsed{display:inline-block;overflow:hidden;margin:0;width:1em;height:.8em;}
+        .jsonview .collapsible.collapsed:before{margin-left:.2em;width:1em;content:"…";}
+        .jsonview .collapser.collapsed{transform:rotate(0);}
+        .jsonview .q{display:inline-block;width:0;color:transparent;}
+        .jsonview li{position:relative;}
+        .jsonview ul{margin:0 0 0 2em;padding:0;list-style:none;}
+        .jsonview h1{font-size:1.2em;}
+    </style>';
 
-        return $this->customCss;
+        return $customCss;
     }
 
     /**
@@ -460,26 +512,25 @@ EXT;
      */
     private function _getJs()
     {
-        $js             = '<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>';
-        $js             .= '<script src="https://cdn.bootcss.com/twitter-bootstrap/4.4.1/js/bootstrap.min.js" type="text/javascript"></script>';
-        $js             .= '<script src="https://cdn.bootcdn.net/ajax/libs/jquery-jsonview/1.2.2/jquery.jsonview.min.js"></script>';
-        $this->customJs = $js.$this->customJs;
+        $js = '<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>';
+        $js .= '<script src="https://cdn.bootcss.com/twitter-bootstrap/4.4.1/js/bootstrap.min.js" type="text/javascript"></script>';
+        $js .= '<script src="https://cdn.bootcdn.net/ajax/libs/jquery-jsonview/1.2.2/jquery.jsonview.min.js"></script>';
+        $js .= '<script type="text/javascript">
+         $(\'a[href*="#"]:not([href="#"])\').click(function() {
+            if (location.pathname.replace(/^\//, \'\') == this.pathname.replace(/^\//, \'\') && location.hostname == this.hostname) {
+                var target = $(this.hash);
+                target = target.length ? target : $("[name=\' + this.hash.slice(1) +\']");
+                if (target.length) {
+                    var topOffset = target.offset().top - 60;
+                    $("html, body").animate({
+                        scrollTop: topOffset
+                    }, 800);
+                    return false;
+                }
+            }
+        });</script>
+';
 
-        return $this->customJs;
-        /*$bootstrapJs = realpath($this->bootstrapJs);
-        $jQueryJs = realpath($this->jQueryJs);
-        if (!$bootstrapJs || !$jQueryJs || !is_file($bootstrapJs) || !is_file($jQueryJs)) {
-            $this->customJs = '';
-            return $this->customCss;
-        }
-        $bootstrapJs = file_get_contents($bootstrapJs);
-        $jQueryJs = file_get_contents($jQueryJs);
-        if (empty($bootstrapJs) || empty($jQueryJs)) {
-            $this->customJs = '';
-            return $this->customJs;
-        }
-        $js = '<script type="text/javascript">' . $jQueryJs . '</script>' . '<script type="text/javascript">' . $bootstrapJs . '</script>';
-        $this->customJs = $js . $this->customJs;
-        return $this->customJs;*/
+        return $js;
     }
 }

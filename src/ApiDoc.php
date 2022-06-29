@@ -9,6 +9,8 @@
 
 namespace xianrenqh\ApiDocWebman;
 
+use xianrenqh\ApiDocWebman\lib\ParseComment;
+
 /**
  * ApiDoc生成
  * Class ApiDoc
@@ -21,6 +23,8 @@ class ApiDoc
      * @var array - 结构化的数组
      */
     private $ApiTree = [];
+
+    public $getConfig = [];
 
     /**
      * @var array - 要生成API的Class类名
@@ -37,8 +41,9 @@ class ApiDoc
      *
      * @param array $config - 配置信息
      */
-    public function __construct($config)
+    public function __construct()
     {
+        $config = config('plugin.xianrenqh.api-doc-webman.app.api_doc');
         // 需要解析的类
         if (isset($config['class'])) {
             $this->class = array_merge($this->class, $config['class']);
@@ -47,6 +52,7 @@ class ApiDoc
         if (isset($config['filter_method'])) {
             $this->filterMethod = array_merge($this->filterMethod, $config['filter_method']);
         }
+        $this->getConfig = $config;
     }
 
     /**

@@ -1,8 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: 小灰灰
- * Date: 2022-06-29
- * Time: 9:52:03
- * Info:
- */
+
+use Webman\Route;
+
+Route::any('/apidoc', [xianrenqh\ApiDocWebman\Index::class, 'index']);
+Route::any('/apidoc/check_auth', [xianrenqh\ApiDocWebman\BootstrapApiDoc::class, 'check_auth']);
